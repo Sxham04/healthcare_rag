@@ -1,9 +1,10 @@
-#query patient database using local llama model
+#query patient database using simple sql pipeline
 import os
 import sqlite3
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 
+#define database path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 db_path = os.path.join(current_dir, "..", "data", "healthcare.db")
 
@@ -25,6 +26,17 @@ Instructions:
 3. Do not add any text explanations.
 """)
 
+#define natural language response prompt
+summary_prompt = ChatPromptTemplate.from_template("""
+You are a helpful healthcare assistant.
+Convert the following database query results into a clear, professional, natural language answer.
+
+User Question: {question}
+Database Query Results: {data}
+
+Instruction: Write a clear 1-2 sentence response explaining the answer to the user.
+""")
+
 #function to run query on sqlite
 def run_sql_query(query):
     connection = sqlite3.connect(db_path)
@@ -40,18 +52,21 @@ def ask_patient_data(question):
     chain = sql_prompt | llm
     sql_response = chain.invoke({"question": question})
     clean_sql = sql_response.content.strip().replace("```sql", "").replace("```", "")
-    print(f"Generated SQL: {clean_sql}")
     
     #execute sql query
     try:
         data = run_sql_query(clean_sql)
-        return f"Database Query Results: {data}"
+        
+        # convert raw tuples to natural text
+        summary_chain = summary_prompt | llm
+        final_answer = summary_chain.invoke({"question": question, "data": str(data)})
+        return final_answer.content
     except Exception as e:
-        return f"Error executing query: {str(e)}"
+        return f"I encountered an error retrieving that information: {str(e)}"
 
 #test run script directly
 if __name__ == "__main__":
-    test_question = "How many patients are in the database?"
+    test_question = "How many patients are registered in the database?"
     print(f"Question: {test_question}")
     answer = ask_patient_data(test_question)
     print(f"Answer: {answer}")
