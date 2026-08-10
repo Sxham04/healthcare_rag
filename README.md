@@ -39,6 +39,29 @@ User Query
 
 ---
 
+## Screenshots
+
+**The Main idle UI**
+![SQL Query](img/main_idle_UI.jpg)
+
+**RAG Query — policy document retrieval**
+![RAG Query](img/policy_main1.jpg)
+
+**RAG Query - retreive specific policy**
+![RAG Query](img/policy_main.jpg)
+
+**SQL Query - retrieve specific details regarding the db**
+![SQL Query](img/databse_query1.jpg)
+
+**RAG Query - retreive details regarding a policy**
+![RAG Query](img/policy_1.jpg)
+
+**RAG Query - user specific query**
+![RAG Query](img/polic_2.jpg)  
+
+**The terminal showing orchastrator splitting the queryies into categories**  
+![Terminal](img/terminal.jpg)
+
 ## Project Structure
 
 ```
