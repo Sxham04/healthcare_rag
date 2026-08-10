@@ -1,40 +1,39 @@
-#read policy files and create vector database
+#the main db setup script, splits the policies pdf into chunks and stores in the chroma db
 import os
-from langchain_core.documents import Document
+import shutil
+from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_chroma import Chroma
 
+#define directory paths
 current_dir = os.path.dirname(os.path.abspath(__file__))
-policy_folder = os.path.join(current_dir, "..", "data", "policies")
-db_folder = os.path.join(current_dir, "..", "data", "chroma_db")
+policies_dir = os.path.join(current_dir, "..", "data", "policies")
+chroma_db_dir = os.path.join(current_dir, "..", "data", "chroma_db")
 
-#list policy files
-files = ["visitor_policy.md", "admission_policy.md", "billing_policy.md"]
+#clean existing vector database directory if present
+if os.path.exists(chroma_db_dir):
+    shutil.rmtree(chroma_db_dir)
 
-#load text documents
-documents = []
-for file_name in files:
-    path = os.path.join(policy_folder, file_name)
-    file = open(path, "r", encoding="utf-8")
-    content = file.read()
-    file.close()
-    
-    doc = Document(page_content=content, metadata={"source": file_name})
-    documents.append(doc)
+#load pdf documents from policies folder
+print("Loading PDF documents from data/policies...")
+loader = PyPDFDirectoryLoader(policies_dir)
+raw_documents = loader.load()
 
-#split text into smaller chunks
-splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=50)
-text_chunks = splitter.split_documents(documents)
+#split pdf text into smaller chunks
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+docs = text_splitter.split_documents(raw_documents)
+print(f"Total document chunks created: {len(docs)}")
 
-#create free local embeddings model
+#load local embeddings model
 embedding_function = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
-#save chunks to vector database
+#build and persist vector database
+print("Building ChromaDB vector index...")
 vector_db = Chroma.from_documents(
-    documents=text_chunks,
+    documents=docs,
     embedding=embedding_function,
-    persist_directory=db_folder
+    persist_directory=chroma_db_dir
 )
 
-print("Vector database setup complete. Policy chunks saved to ChromaDB.")
+print("Vector database successfully built from PDF policy documents!")
